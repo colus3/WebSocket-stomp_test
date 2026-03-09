@@ -25,6 +25,7 @@ subprojects {
 
     extensions.configure<org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension> {
         compilerOptions {
+            languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_2
             freeCompilerArgs.addAll("-Xjsr305=strict", "-Xannotation-default-target=param-property")
         }
         jvmToolchain(21)
