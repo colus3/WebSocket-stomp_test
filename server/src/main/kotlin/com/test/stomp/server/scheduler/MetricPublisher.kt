@@ -2,18 +2,19 @@ package com.test.stomp.server.scheduler
 
 import com.test.stomp.server.domain.SystemMetric
 import com.test.stomp.server.domain.SystemMetricRepository
-import org.slf4j.LoggerFactory
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import kotlin.random.Random
+
+private val log = KotlinLogging.logger {}
 
 @Component
 class MetricPublisher(
     private val repository: SystemMetricRepository,
     private val messagingTemplate: SimpMessagingTemplate
 ) {
-    private val log = LoggerFactory.getLogger(MetricPublisher::class.java)
 
     @Scheduled(fixedDelay = 10_000)
     fun publishMetric() {
@@ -24,7 +25,7 @@ class MetricPublisher(
             unit = "%"
         )
         val saved = repository.save(metric)
-        log.info("Saved metric id={} type={} value={}%", saved.id, saved.metricType, saved.value)
+        log.info { "Saved metric id=${saved.id} type=${saved.metricType} value=${saved.value}%" }
         messagingTemplate.convertAndSend("/topic/metrics", saved)
     }
 }

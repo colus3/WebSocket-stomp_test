@@ -19,6 +19,10 @@ subprojects {
         mavenCentral()
     }
 
+    dependencies {
+        "implementation"("io.github.oshai:kotlin-logging-jvm:7.0.3")
+    }
+
     extensions.configure<org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension> {
         compilerOptions {
             freeCompilerArgs.addAll("-Xjsr305=strict", "-Xannotation-default-target=param-property")
