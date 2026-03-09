@@ -28,4 +28,20 @@ class MetricPublisher(
         log.info { "Saved metric id=${saved.id} type=${saved.metricType} value=${saved.value}%" }
         messagingTemplate.convertAndSend("/topic/metrics", saved)
     }
+
+    @Scheduled(fixedDelay = 7_000)
+    fun publishMetricByDevice() {
+        val devices = listOf("device-001", "device-002", "device-003")
+        devices.forEach { deviceId ->
+            val memoryUsage = String.format("%.2f", Random.nextDouble(10.0, 90.0)).toDouble()
+            val metric = SystemMetric(
+                metricType = "MEMORY_USAGE",
+                value = memoryUsage,
+                unit = "%"
+            )
+            val saved = repository.save(metric)
+            log.info { "Saved metric id=${saved.id} device=$deviceId type=${saved.metricType} value=${saved.value}%" }
+            messagingTemplate.convertAndSend("/topic/metrics/$deviceId", saved)
+        }
+    }
 }
