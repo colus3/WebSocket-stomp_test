@@ -1,0 +1,7 @@
+server:
+  port: 8081
+
+stomp:
+  server:
+    url: ws://localhost:8080/ws
+    topic: /topic/metrics
