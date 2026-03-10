@@ -9,6 +9,7 @@ import org.springframework.messaging.converter.JacksonJsonMessageConverter
 import org.springframework.messaging.simp.stomp.StompHeaders
 import org.springframework.messaging.simp.stomp.StompSession
 import org.springframework.messaging.simp.stomp.StompSessionHandlerAdapter
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler
 import org.springframework.web.socket.client.standard.StandardWebSocketClient
 import org.springframework.web.socket.messaging.WebSocketStompClient
 
@@ -23,8 +24,10 @@ class StompClientConfig(
 
     @PostConstruct
     fun connect() {
+        val scheduler = ThreadPoolTaskScheduler().also { it.initialize() }
         val stompClient = WebSocketStompClient(StandardWebSocketClient()).apply {
             messageConverter = JacksonJsonMessageConverter()
+            taskScheduler = scheduler
             defaultHeartbeat = longArrayOf(10000, 10000)
         }
 
