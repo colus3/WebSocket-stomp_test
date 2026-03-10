@@ -1,5 +1,6 @@
 package com.test.stomp.client.handler
 
+import com.test.stomp.client.dto.MetricDto
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.messaging.simp.stomp.StompFrameHandler
 import org.springframework.messaging.simp.stomp.StompHeaders
@@ -11,9 +12,10 @@ private val log = KotlinLogging.logger {}
 @Component
 class MetricMessageHandler : StompFrameHandler {
 
-    override fun getPayloadType(headers: StompHeaders): Type = String::class.java
+    override fun getPayloadType(headers: StompHeaders): Type = MetricDto::class.java
 
     override fun handleFrame(headers: StompHeaders, payload: Any?) {
-        log.info { "[STOMP] Received metric: $payload" }
+        val metric = payload as MetricDto
+        log.info { "[STOMP] Received metric: $metric" }
     }
 }
