@@ -53,6 +53,8 @@ WebSocket-stomp_test/
         │   ├── ClientApplication.kt          # @SpringBootApplication
         │   ├── config/
         │   │   └── StompClientConfig.kt      # STOMP 연결 및 구독 설정
+        │   ├── dto/
+        │   │   └── MetricDto.kt              # 수신 메시지 역직렬화 DTO
         │   └── handler/
         │       └── MetricMessageHandler.kt   # 메시지 수신 핸들러
         └── resources/
@@ -84,8 +86,11 @@ WebSocket-stomp_test/
 │  StompClientConfig (connectAsync)                           │
 │    └─► session.subscribe("/topic/metrics", handler)         │
 │                     │                                       │
-│  MetricMessageHandler.handleFrame()                         │
-│    └─► log.info("[STOMP] Received metric: {}", payload)     │
+│  JacksonJsonMessageConverter                                │
+│    └─► JSON → MetricDto 역직렬화                             │
+│                     │                                       │
+│  MetricMessageHandler.handleFrame(payload: MetricDto)       │
+│    └─► log.info { "[STOMP] Received metric: $metric" }      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -145,7 +150,7 @@ INFO --- MetricPublisher : Saved metric id=3 type=CPU_USAGE value=15.22%
 ```
 INFO --- StompClientConfig     : [STOMP] Connected to server: ws://localhost:8080/ws
 INFO --- StompClientConfig     : [STOMP] Subscribed to topic: /topic/metrics
-INFO --- MetricMessageHandler  : [STOMP] Received metric: {"id":1,"metricType":"CPU_USAGE","value":42.35,"unit":"%","recordedAt":"2026-03-09T..."}
+INFO --- MetricMessageHandler  : [STOMP] Received metric: MetricDto(id=1, metricType=CPU_USAGE, value=42.35, unit=%, recordedAt=2026-03-10T...)
 ```
 
 ### MySQL 이력 확인
@@ -229,12 +234,41 @@ fun publishMetric() {
 ```kotlin
 @PostConstruct
 fun connect() {
-    val stompClient = WebSocketStompClient(StandardWebSocketClient())
+    val scheduler = ThreadPoolTaskScheduler().also { it.initialize() }
+    val stompClient = WebSocketStompClient(StandardWebSocketClient()).apply {
+        messageConverter = JacksonJsonMessageConverter() // JSON → DTO 자동 역직렬화
+        taskScheduler = scheduler                        // heartbeat 처리용
+        defaultHeartbeat = longArrayOf(10000, 10000)     // 연결 유지
+    }
     stompClient.connectAsync(serverUrl, object : StompSessionHandlerAdapter() {
         override fun afterConnected(session: StompSession, connectedHeaders: StompHeaders) {
             session.subscribe(topic, metricMessageHandler)
         }
     })
+}
+```
+
+### 수신 메시지 역직렬화 (클라이언트)
+
+`getPayloadType`에서 `MetricDto::class.java`를 반환하면 `JacksonJsonMessageConverter`가
+STOMP 프레임의 JSON 바디를 `MetricDto`로 자동 역직렬화한다.
+
+```kotlin
+data class MetricDto(
+    val id: Long,
+    val metricType: String,
+    val value: Double,
+    val unit: String,
+    val recordedAt: Instant
+)
+
+class MetricMessageHandler : StompFrameHandler {
+    override fun getPayloadType(headers: StompHeaders): Type = MetricDto::class.java
+
+    override fun handleFrame(headers: StompHeaders, payload: Any?) {
+        val metric = payload as MetricDto
+        log.info { "[STOMP] Received metric: $metric" } // data class toString() 활용
+    }
 }
 ```
 
