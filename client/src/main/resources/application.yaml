@@ -5,3 +5,8 @@ stomp:
   server:
     url: ws://localhost:8080/ws
     topic: /topic/metrics
+
+logging:
+  level:
+    org.springframework.web.socket: DEBUG
+    org.springframework.messaging: DEBUG

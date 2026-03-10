@@ -5,6 +5,10 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import jakarta.annotation.PostConstruct
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Configuration
+import org.springframework.messaging.Message
+import org.springframework.messaging.MessageHeaders
+import org.springframework.messaging.converter.MessageConverter
+import org.springframework.messaging.simp.stomp.StompCommand
 import org.springframework.messaging.simp.stomp.StompHeaders
 import org.springframework.messaging.simp.stomp.StompSession
 import org.springframework.messaging.simp.stomp.StompSessionHandlerAdapter
@@ -25,6 +29,14 @@ class StompClientConfig(
     fun connect() {
         val scheduler = ThreadPoolTaskScheduler().also { it.initialize() }
         val stompClient = WebSocketStompClient(StandardWebSocketClient()).apply {
+            messageConverter = object : MessageConverter {
+                override fun fromMessage(message: Message<*>, targetClass: Class<*>): Any =
+                    when (val p = message.payload) {
+                        is ByteArray -> String(p, Charsets.UTF_8)
+                        else -> p.toString()
+                    }
+                override fun toMessage(payload: Any, headers: MessageHeaders?): Message<*>? = null
+            }
             taskScheduler = scheduler
             defaultHeartbeat = longArrayOf(10000, 10000)
         }
@@ -37,7 +49,14 @@ class StompClientConfig(
             }
 
             override fun handleTransportError(session: StompSession, exception: Throwable) {
-                log.error { "[STOMP] Transport error: ${exception.message}" }
+                log.error(exception) { "[STOMP] Transport error: ${exception.message}" }
+            }
+
+            override fun handleException(
+                session: StompSession, command: StompCommand?,
+                headers: StompHeaders, payload: ByteArray, exception: Throwable
+            ) {
+                log.error(exception) { "[STOMP] Frame handling error — command=$command payload=${String(payload)}" }
             }
         })
     }
