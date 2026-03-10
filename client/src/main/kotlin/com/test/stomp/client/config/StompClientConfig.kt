@@ -5,7 +5,6 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import jakarta.annotation.PostConstruct
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Configuration
-import org.springframework.messaging.converter.JacksonJsonMessageConverter
 import org.springframework.messaging.simp.stomp.StompHeaders
 import org.springframework.messaging.simp.stomp.StompSession
 import org.springframework.messaging.simp.stomp.StompSessionHandlerAdapter
@@ -26,7 +25,6 @@ class StompClientConfig(
     fun connect() {
         val scheduler = ThreadPoolTaskScheduler().also { it.initialize() }
         val stompClient = WebSocketStompClient(StandardWebSocketClient()).apply {
-            messageConverter = JacksonJsonMessageConverter()
             taskScheduler = scheduler
             defaultHeartbeat = longArrayOf(10000, 10000)
         }
